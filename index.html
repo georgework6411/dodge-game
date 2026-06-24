@@ -137,4 +137,178 @@
         highScoreDisplay.textContent = `High Score: ${highScore}`;
 
         // Game Balance Parameters
-        let enemy
+        let enemySpawnRate = 40; // Spawns an enemy every X frames
+        let frameCount = 0;
+        let baseEnemySpeed = 3;
+        let speedMultiplier = 1;
+
+        // Player Properties
+        const player = {
+            x: 185,
+            y: 440,
+            width: 30,
+            height: 30,
+            color: '#00ffcc',
+            speed: 7,
+            dx: 0
+        };
+
+        // Enemy Array
+        let enemies = [];
+
+        // Track pressed keys
+        const keys = {
+            ArrowLeft: false,
+            ArrowRight: false,
+            a: false,
+            d: false
+        };
+
+        // Event Listeners for Controls
+        document.addEventListener('keydown', (e) => {
+            if (e.key in keys) keys[e.key] = true;
+        });
+
+        document.addEventListener('keyup', (e) => {
+            if (e.key in keys) keys[e.key] = false;
+        });
+
+        startBtn.addEventListener('click', startGame);
+
+        function startGame() {
+            // Reset game variables
+            enemies = [];
+            score = 0;
+            frameCount = 0;
+            speedMultiplier = 1;
+            player.x = canvas.width / 2 - player.width / 2;
+            player.dx = 0;
+            scoreDisplay.textContent = `Score: ${score}`;
+            
+            // Hide menu UI
+            overlay.style.display = 'none';
+            gameActive = true;
+            
+            // Start Loop
+            requestAnimationFrame(update);
+        }
+
+        function createEnemy() {
+            const size = Math.random() * (40 - 15) + 15; // Random width/height between 15 and 40
+            const x = Math.random() * (canvas.width - size);
+            // Random distinct colors for enemies
+            const colors = ['#ff4757', '#ffa502', '#ff6b81', '#ff4757', '#de1f1f'];
+            const color = colors[Math.floor(Math.random() * colors.length)];
+            
+            enemies.push({
+                x: x,
+                y: -size,
+                width: size,
+                height: size,
+                speed: (Math.random() * (2 - 0.5) + 0.5) + baseEnemySpeed,
+                color: color
+            });
+        }
+
+        function handlePlayerMovement() {
+            // Determine direction
+            if (keys.ArrowLeft || keys.a) {
+                player.dx = -player.speed;
+            } else if (keys.ArrowRight || keys.d) {
+                player.dx = player.speed;
+            } else {
+                player.dx = 0;
+            }
+
+            // Move player
+            player.x += player.dx;
+
+            // Screen boundaries wall collision
+            if (player.x < 0) player.x = 0;
+            if (player.x + player.width > canvas.width) {
+                player.x = canvas.width - player.width;
+            }
+        }
+
+        function checkCollision(rect1, rect2) {
+            return rect1.x < rect2.x + rect2.width &&
+                   rect1.x + rect1.width > rect2.x &&
+                   rect1.y < rect2.y + rect2.height &&
+                   rect1.y + rect1.height > rect2.y;
+        }
+
+        function gameOver() {
+            gameActive = false;
+            
+            // Update High Score logic
+            if (score > highScore) {
+                highScore = score;
+                localStorage.setItem('dodge_highScore', highScore);
+                highScoreDisplay.textContent = `High Score: ${highScore}`;
+            }
+
+            // Show Game Over Screen
+            overlayTitle.textContent = "GAME OVER";
+            overlayTitle.style.color = "#ff4757";
+            overlayTitle.style.textShadow = "0 0 10px rgba(255, 71, 87, 0.5)";
+            overlayDesc.textContent = `Final Score: ${score}`;
+            startBtn.textContent = "TRY AGAIN";
+            overlay.style.display = 'flex';
+        }
+
+        // Main Game Loop
+        function update() {
+            if (!gameActive) return;
+
+            // Clear canvas for redrawing
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            handlePlayerMovement();
+
+            // Draw Player with a slight neon glow
+            ctx.shadowBlur = 10;
+            ctx.shadowColor = player.color;
+            ctx.fillStyle = player.color;
+            ctx.fillRect(player.x, player.y, player.width, player.height);
+            
+            // Reset shadow blur for performance on enemies
+            ctx.shadowBlur = 0;
+
+            // Spawn management
+            frameCount++;
+            // Dynamically scale difficulty based on score
+            speedMultiplier = 1 + (score * 0.05); 
+            let dynamicSpawnRate = Math.max(15, enemySpawnRate - Math.floor(score / 3));
+
+            if (frameCount % dynamicSpawnRate === 0) {
+                createEnemy();
+            }
+
+            // Update & Draw Enemies
+            for (let i = enemies.length - 1; i >= 0; i--) {
+                let e = enemies[i];
+                e.y += e.speed * speedMultiplier;
+
+                // Draw enemy
+                ctx.fillStyle = e.color;
+                ctx.fillRect(e.x, e.y, e.width, e.height);
+
+                // Collision detection
+                if (checkCollision(player, e)) {
+                    gameOver();
+                    return;
+                }
+
+                // If enemy moves off bottom screen, safely remove it and add score
+                if (e.y > canvas.height) {
+                    enemies.splice(i, 1);
+                    score++;
+                    scoreDisplay.textContent = `Score: ${score}`;
+                }
+            }
+
+            requestAnimationFrame(update);
+        }
+    </script>
+</body>
+</html>
