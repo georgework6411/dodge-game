@@ -131,10 +131,23 @@
         const startBtn = document.getElementById('start-btn');
 
         // Game State Variables
-        let gameActive = false;
-        let score = 0;
-        let highScore = localStorage.getItem('dodge_highScore') || 0;
-        highScoreDisplay.textContent = `High Score: ${highScore}`;
+        //let gameActive = false;
+        //let score = 0;
+        //let highScore = localStorage.getItem('dodge_highScore') || 0;
+        //highScoreDisplay.textContent = `High Score: ${highScore}`;
+
+// Game State Variables
+let gameActive = false;
+let score = 0;
+let highScore = 0;
+
+// Safely check for localStorage support on a web server
+try {
+    highScore = localStorage.getItem('dodge_highScore') || 0;
+} catch (e) {
+    console.warn("localStorage is blocked by browser or server settings. High score won't save.");
+}
+highScoreDisplay.textContent = `High Score: ${highScore}`;
 
         // Game Balance Parameters
         let enemySpawnRate = 40; // Spawns an enemy every X frames
